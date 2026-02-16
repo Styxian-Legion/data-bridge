@@ -5,10 +5,12 @@ import express from "express";
 import { APP_CONFIG } from "./config";
 
 // middleware
+import uploadExcel from "./middlewares/upload_file_excel.middleware";
 import ErrorMiddleware from "./middlewares/error.middleware";
 
 // controllers
 import ConnectorController from "./src/connector/connector.controller";
+import MappingController from "./src/mapping/mapping.controller";
 
 // bootstrap the application
 async function bootstrap() {
@@ -23,6 +25,8 @@ async function bootstrap() {
     app.get("/connectors/:id", ConnectorController.getConnectorById);
     app.patch("/connectors/:id", ConnectorController.updateConnector);
     app.delete("/connectors/:id", ConnectorController.deleteConnector);
+
+    app.post("/mappings", uploadExcel.single("source"), MappingController.createMapping);
 
     app.use(ErrorMiddleware);
 
