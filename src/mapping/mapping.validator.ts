@@ -9,24 +9,16 @@ const ACCEPTED_TYPES = [
 
 export const MappingSchema = z.object({
     name: z.string().trim().min(1, "Name is required"),
-    connectorIds: z.preprocess((val) => {
-        if (typeof val === "string") {
-            try {
-                return JSON.parse(val);
-            } catch {
-                return val.split(",").map(Number);
-            }
-        }
-        return val;
-    }, z.array(z.number().int().positive())
-        .min(1, "At least one Connector ID is required")
-    ),
-    tableName: z.string().trim().min(1, "Table name is required"),
-    source: z.any()
-        .refine((file) => !!file, "File is required")
+    table_name: z.string().trim().min(1, "Table name is required"),
+    source_file: z.object({
+        filename: z.string(),
+        mimetype: z.string(),
+        size: z.number(),
+        path: z.string(),
+    })
         .refine((file) => file.size <= MAX_FILE_SIZE, `Max file size is 10MB.`)
         .refine(
-            (file) => ACCEPTED_TYPES.includes(file.mimetype), // Multer pakai 'mimetype', bukan 'type'
+            (file) => ACCEPTED_TYPES.includes(file.mimetype),
             "Only .xls or .xlsx files are accepted."
-        ),
+        )
 });

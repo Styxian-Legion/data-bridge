@@ -26,7 +26,10 @@ async function bootstrap() {
     app.patch("/connectors/:id", ConnectorController.updateConnector);
     app.delete("/connectors/:id", ConnectorController.deleteConnector);
 
-    app.post("/mappings", uploadExcel.single("source"), MappingController.createMapping);
+    app.post("/mappings", uploadExcel.single("source_file"), MappingController.createMapping);
+    app.get("/mappings", MappingController.getMappings);
+    app.get("/mappings/:id", MappingController.getMappingById);
+    app.delete("/mappings/:id", MappingController.deleteMapping);
 
     app.use(ErrorMiddleware);
 

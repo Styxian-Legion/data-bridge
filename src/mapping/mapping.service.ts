@@ -1,12 +1,63 @@
-import ResponseError from "../../utils/response-error";
 import XLSX from "xlsx";
+import fs from "fs/promises";
+import path from "path";
 import { redis } from "../../db/redis";
+
+import MappingRepository from "./mapping.repository";
+import ResponseError from "../../utils/response-error";
 
 export default class MappingService {
 
-    static async createMapping(data: { name: string, connectorIds: number[], tableName: string, source: { filename: string, path: string } }) {
+    static async getMappings() {
+        return await MappingRepository.getMappings();
+    }
+
+    static async getMappingById(id: number | string) {
+        const mapping = await MappingRepository.getMappingById(id);
+        if (!mapping) {
+            throw new ResponseError({
+                status: 404,
+                code: "MAPPING_NOT_FOUND",
+                message: `Mapping with id ${id} not found.`,
+            });
+        }
+
+        return mapping;
+    }
+
+    static async deleteMapping(id: number | string) {
+        const mapping = await MappingRepository.getMappingById(id);
+
+        if (!mapping) {
+            throw new ResponseError({
+                status: 404,
+                code: "MAPPING_NOT_FOUND",
+                message: `Mapping with id ${id} not found.`,
+            });
+        }
+
+        await redis.del(mapping.redis_key);
+
+        if (mapping.source_file) {
+            const filePath = path.join(
+                process.cwd(),
+                "uploads",
+                "excels",
+                mapping.source_file
+            );
+
+            await fs.unlink(filePath).catch((err) => {
+                console.error("Failed to delete file:", err.message);
+            });
+        }
+
+        await MappingRepository.deleteMapping(id);
+        return true;
+    }
+
+    static async createMapping(data: { name: string, table_name: string, source_file: { filename: string, path: string } }) {
         try {
-            const workbook = XLSX.readFile(data.source.path);
+            const workbook = XLSX.readFile(data.source_file.path);
 
             if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
                 throw new ResponseError({
@@ -48,16 +99,15 @@ export default class MappingService {
                 });
             }
 
-            await redis.set(`mapping:${data.name}`, JSON.stringify(jsonData));
+            const redisKey = `mapping:${Date.now()}`;
+            await redis.set(redisKey, JSON.stringify(jsonData));
 
-            return {
+            return await MappingRepository.createMapping({
                 name: data.name,
-                connectorIds: data.connectorIds,
-                tableName: data.tableName,
-                source: data.source.filename,
-                redisKey: `mapping:${data.name}`,
-                details: jsonData
-            };
+                table_name: data.table_name,
+                source_file: data.source_file.filename,
+                redis_key: redisKey
+            });
         } catch (error: any) {
             if (error instanceof ResponseError) throw error;
 
