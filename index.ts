@@ -11,6 +11,7 @@ import ErrorMiddleware from "./middlewares/error.middleware";
 // controllers
 import ConnectorController from "./src/connector/connector.controller";
 import MappingController from "./src/mapping/mapping.controller";
+import JobController from "./src/job/job.controller";
 
 // bootstrap the application
 async function bootstrap() {
@@ -30,6 +31,10 @@ async function bootstrap() {
     app.get("/mappings", MappingController.getMappings);
     app.get("/mappings/:id", MappingController.getMappingById);
     app.delete("/mappings/:id", MappingController.deleteMapping);
+
+    app.post("/jobs", JobController.createJob);
+    app.get("/jobs", JobController.getJobs);
+    app.post("/jobs/run/:name", JobController.runJob);
 
     app.use(ErrorMiddleware);
 
